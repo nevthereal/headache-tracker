@@ -1,0 +1,20 @@
+{
+	"name": "headache",
+	"private": true,
+	"workspaces": ["apps/*"],
+	"scripts": {
+		"dev": "bun run --filter '*' dev",
+		"build": "bun run --filter '*' build",
+		"check-types": "bun run --filter '*' check-types",
+		"dev:native": "bun run --filter native dev",
+		"dev:web": "bun run --filter web dev",
+		"dev:server": "bun run --filter server dev",
+		"db:push": "bun run --filter server db:push",
+		"db:studio": "bun run --filter server db:studio"
+	},
+	"dependencies": {},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4"
+	},
+	"packageManager": "bun@1.2.8"
+}
