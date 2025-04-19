@@ -1,6 +1,7 @@
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 import { entry } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -18,5 +19,20 @@ export const appRouter = router({
       .from(entry)
       .where(eq(entry.userId, ctx.session.user.id));
   }),
+  newEntry: protectedProcedure
+    .input(
+      z.object({
+        rating: z.number(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(({ ctx, input: { rating, notes } }) => {
+      return ctx.db.insert(entry).values({
+        rating,
+        notes,
+        date: new Date(),
+        userId: ctx.session.user.id,
+      });
+    }),
 });
 export type AppRouter = typeof appRouter;

@@ -3,6 +3,9 @@
   "workspaces": {
     "": {
       "name": "headache",
+      "dependencies": {
+        "zod": "^3.24.3",
+      },
       "devDependencies": {
         "@biomejs/biome": "1.9.4",
       },

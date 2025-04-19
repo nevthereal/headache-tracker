@@ -17,7 +17,11 @@ function HomeComponent() {
         <p>Loading...</p>
       ) : entries.data ? (
         <ul>
-          {entries.data?.map((entry) => <li key={entry.id}>{entry.title}</li>)}
+          {entries.data?.map((entry) => (
+            <li key={entry.id}>
+              {Intl.DateTimeFormat().format(new Date(entry.date))}
+            </li>
+          ))}
         </ul>
       ) : (
         <p>No entries found</p>
