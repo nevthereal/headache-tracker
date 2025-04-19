@@ -17,9 +17,12 @@ export default function EntryCard({ notes, date, rating }: EntryCardProps) {
     <Card>
       <CardHeader>
         <CardTitle>
-          {Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(date)}
+          <span className='text-muted-foreground'>
+            {Intl.DateTimeFormat("en-GB", { dateStyle: "full" }).format(date)}
+            :{" "}
+          </span>
+          <span>{rating}/5</span>
         </CardTitle>
-        <CardDescription>{rating}</CardDescription>
       </CardHeader>
       <CardContent>
         <p>{notes || "No Notes"}</p>

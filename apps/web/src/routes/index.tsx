@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@radix-ui/react-label";
 import EntryCard from "@/components/entry-card";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -35,6 +37,34 @@ const { useAppForm } = createFormHook({
 function HomeComponent() {
   const entries = useQuery(trpc.entries.queryOptions());
 
+  return (
+    <div className='container mx-auto max-w-3xl px-4 py-4'>
+      <h1 className='font-bold text-2xl'>Last entries:</h1>
+      <NewEntryForm />
+      {entries.isLoading ? (
+        <p>Loading...</p>
+      ) : entries.data ? (
+        <>
+          <Chart data={entries.data} />
+          <ul>
+            {entries.data?.map((entry) => (
+              <EntryCard
+                key={entry.id}
+                rating={entry.rating}
+                notes={entry.notes}
+                date={new Date(entry.date)}
+              />
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p>No entries found</p>
+      )}
+    </div>
+  );
+}
+
+function NewEntryForm() {
   type Input = inferInput<typeof trpc.newEntry>;
 
   const inputs: Input = {
@@ -46,12 +76,12 @@ function HomeComponent() {
     defaultValues: inputs,
   });
 
-  const mutation = useMutation(trpc.newEntry.mutationOptions());
+  const newEntryMutation = useMutation(trpc.newEntry.mutationOptions());
 
   const form = useAppForm({
     ...formOpts,
     async onSubmit({ value }) {
-      await mutation.mutateAsync(value);
+      await newEntryMutation.mutateAsync(value);
     },
     validators: {
       onChange: zNewEntry,
@@ -59,70 +89,81 @@ function HomeComponent() {
   });
 
   return (
-    <div className='container mx-auto max-w-3xl px-4 py-4'>
-      <h1 className='font-bold text-2xl'>Last entries:</h1>
-      <div className='my-4 border-accent border bg-card p-8 rounded-xl'>
-        <h2 className='font-bold text-xl mb-4'>New entry</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-          className='flex flex-col gap-4'
-        >
-          <form.AppField
-            name='rating'
-            // biome-ignore lint/correctness/noChildrenProp: <explanation>
-            children={(field) => (
-              <div>
-                <Label htmlFor='rating'>Rating</Label>
-                <field.Slider
-                  onBlur={field.handleBlur}
-                  max={5}
-                  onValueChange={(e) => field.handleChange(e)}
-                  className='mt-2'
-                />
-              </div>
-            )}
-          />
-          <form.AppField
-            name='notes'
-            // biome-ignore lint/correctness/noChildrenProp: <explanation>
-            children={(field) => (
-              <div>
-                <Label htmlFor='notes'>Notes</Label>
-                <field.Input
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-              </div>
-            )}
-          />
-          <form.AppForm>
-            <form.Button type='submit' disabled={form.state.isSubmitting}>
-              Submit
-            </form.Button>
-          </form.AppForm>
-        </form>
-      </div>
-
-      {entries.isLoading ? (
-        <p>Loading...</p>
-      ) : entries.data ? (
-        <ul>
-          {entries.data?.map((entry) => (
-            <EntryCard
-              key={entry.id}
-              rating={entry.rating}
-              notes={entry.notes}
-              date={new Date(entry.date)}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p>No entries found</p>
-      )}
+    <div className='my-4 border-accent border bg-card p-8 rounded-xl'>
+      <h2 className='font-bold text-xl mb-4'>New entry</h2>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+        className='flex flex-col gap-4'
+      >
+        <form.AppField
+          name='rating'
+          // biome-ignore lint/correctness/noChildrenProp: <explanation>
+          children={(field) => (
+            <div>
+              <Label htmlFor='rating'>Rating</Label>
+              <field.Slider
+                onBlur={field.handleBlur}
+                max={5}
+                onValueChange={(e) => field.handleChange(e)}
+                className='mt-2'
+              />
+            </div>
+          )}
+        />
+        <form.AppField
+          name='notes'
+          // biome-ignore lint/correctness/noChildrenProp: <explanation>
+          children={(field) => (
+            <div>
+              <Label htmlFor='notes'>Notes</Label>
+              <field.Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+            </div>
+          )}
+        />
+        <form.AppForm>
+          <form.Button type='submit' disabled={form.state.isSubmitting}>
+            Submit
+          </form.Button>
+        </form.AppForm>
+      </form>
     </div>
+  );
+}
+
+function Chart({ data }: { data: { month: string; rating: number }[] }) {
+  const chartConfig = {
+    rating: {
+      label: "Rating",
+      color: "hsl(var(--chart-1))",
+    },
+  } satisfies ChartConfig;
+
+  return (
+    <ChartContainer config={chartConfig} className='min-h-[200px] w-full'>
+      <AreaChart accessibilityLayer data={data}>
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey='month'
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tickFormatter={(value) => value.slice(0, 3)}
+        />
+        <Area
+          dataKey='rating'
+          type='natural'
+          fill='var(--color-rating)'
+          fillOpacity={0.4}
+          stroke='var(--color-rating)'
+        />
+      </AreaChart>
+    </ChartContainer>
   );
 }
