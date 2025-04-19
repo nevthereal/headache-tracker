@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import {
@@ -15,9 +15,19 @@ import { Label } from "@radix-ui/react-label";
 import EntryCard from "@/components/entry-card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
+  loader: async ({ context: { queryClient } }) => {
+    const entries = await queryClient.ensureQueryData(
+      trpc.entries.queryOptions()
+    );
+    return { entries };
+  },
+  async beforeLoad() {
+    if (!(await authClient.getSession()).data) throw redirect({ to: "/login" });
+  },
 });
 
 const { fieldContext, formContext } = createFormHookContexts();
@@ -35,19 +45,17 @@ const { useAppForm } = createFormHook({
 });
 
 function HomeComponent() {
-  const entries = useQuery(trpc.entries.queryOptions());
+  const { entries } = Route.useLoaderData();
 
   return (
     <div className='container mx-auto max-w-3xl px-4 py-4'>
       <h1 className='font-bold text-2xl'>Last entries:</h1>
       <NewEntryForm />
-      {entries.isLoading ? (
-        <p>Loading...</p>
-      ) : entries.data ? (
+      {entries ? (
         <>
-          <Chart data={entries.data} />
+          {/* <Chart data={entries} /> */}
           <ul>
-            {entries.data?.map((entry) => (
+            {entries.map((entry) => (
               <EntryCard
                 key={entry.id}
                 rating={entry.rating}
@@ -98,12 +106,10 @@ function NewEntryForm() {
         }}
         className='flex flex-col gap-4'
       >
-        <form.AppField
-          name='rating'
-          // biome-ignore lint/correctness/noChildrenProp: <explanation>
-          children={(field) => (
+        <form.AppField name='rating'>
+          {(field) => (
             <div>
-              <Label htmlFor='rating'>Rating</Label>
+              <Label htmlFor='rating'>Rating ({field.state.value})</Label>
               <field.Slider
                 onBlur={field.handleBlur}
                 max={5}
@@ -112,11 +118,9 @@ function NewEntryForm() {
               />
             </div>
           )}
-        />
-        <form.AppField
-          name='notes'
-          // biome-ignore lint/correctness/noChildrenProp: <explanation>
-          children={(field) => (
+        </form.AppField>
+        <form.AppField name='notes'>
+          {(field) => (
             <div>
               <Label htmlFor='notes'>Notes</Label>
               <field.Input
@@ -126,9 +130,12 @@ function NewEntryForm() {
               />
             </div>
           )}
-        />
+        </form.AppField>
         <form.AppForm>
-          <form.Button type='submit' disabled={form.state.isSubmitting}>
+          <form.Button
+            type='submit'
+            disabled={!form.state.canSubmit || form.state.isSubmitting}
+          >
             Submit
           </form.Button>
         </form.AppForm>

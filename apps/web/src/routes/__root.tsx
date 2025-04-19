@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import "../index.css";
+import UserMenu from "@/components/user-menu";
 
 export interface RouterAppContext {
   trpc: typeof trpc;
@@ -46,6 +47,10 @@ function RootComponent() {
   return (
     <>
       <HeadContent />
+      <header className='flex justify-between p-4'>
+        <h1 className='text-2xl font-bold'>Headache Tracker</h1>
+        <UserMenu />
+      </header>
       <ThemeProvider defaultTheme='dark' storageKey='vite-ui-theme'>
         <div className='grid h-svh grid-rows-[auto_1fr]'>
           {isFetching ? <Loader /> : <Outlet />}
