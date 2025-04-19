@@ -10,6 +10,9 @@ import type { inferInput } from "@trpc/tanstack-react-query";
 import { zNewEntry } from "../../../server/src/lib/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@radix-ui/react-label";
+import EntryCard from "@/components/entry-card";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -20,6 +23,7 @@ const { fieldContext, formContext } = createFormHookContexts();
 const { useAppForm } = createFormHook({
   fieldComponents: {
     Input,
+    Slider,
   },
   formComponents: {
     Button,
@@ -47,7 +51,7 @@ function HomeComponent() {
   const form = useAppForm({
     ...formOpts,
     async onSubmit({ value }) {
-      mutation.mutate(value);
+      await mutation.mutateAsync(value);
     },
     validators: {
       onChange: zNewEntry,
@@ -55,52 +59,70 @@ function HomeComponent() {
   });
 
   return (
-    <div className='container mx-auto max-w-3xl px-4 py-2'>
-      <h1 className='font-bold text-2xl'>Letzte Einträge:</h1>
+    <div className='container mx-auto max-w-3xl px-4 py-4'>
+      <h1 className='font-bold text-2xl'>Last entries:</h1>
+      <div className='my-4 border-accent border bg-card p-8 rounded-xl'>
+        <h2 className='font-bold text-xl mb-4'>New entry</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+          className='flex flex-col gap-4'
+        >
+          <form.AppField
+            name='rating'
+            // biome-ignore lint/correctness/noChildrenProp: <explanation>
+            children={(field) => (
+              <div>
+                <Label htmlFor='rating'>Rating</Label>
+                <field.Slider
+                  onBlur={field.handleBlur}
+                  max={5}
+                  onValueChange={(e) => field.handleChange(e)}
+                  className='mt-2'
+                />
+              </div>
+            )}
+          />
+          <form.AppField
+            name='notes'
+            // biome-ignore lint/correctness/noChildrenProp: <explanation>
+            children={(field) => (
+              <div>
+                <Label htmlFor='notes'>Notes</Label>
+                <field.Input
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              </div>
+            )}
+          />
+          <form.AppForm>
+            <form.Button type='submit' disabled={form.state.isSubmitting}>
+              Submit
+            </form.Button>
+          </form.AppForm>
+        </form>
+      </div>
 
       {entries.isLoading ? (
         <p>Loading...</p>
       ) : entries.data ? (
         <ul>
           {entries.data?.map((entry) => (
-            <li key={entry.id}>
-              {Intl.DateTimeFormat().format(new Date(entry.date))}
-            </li>
+            <EntryCard
+              key={entry.id}
+              rating={entry.rating}
+              notes={entry.notes}
+              date={new Date(entry.date)}
+            />
           ))}
         </ul>
       ) : (
         <p>No entries found</p>
       )}
-
-      <form onSubmit={form.handleSubmit}>
-        <form.AppField
-          name='rating'
-          // biome-ignore lint/correctness/noChildrenProp: <explanation>
-          children={(field) => (
-            <>
-              <field.Input
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(Number(e.target.value))}
-              />
-            </>
-          )}
-        />
-        <form.AppField
-          name='notes'
-          // biome-ignore lint/correctness/noChildrenProp: <explanation>
-          children={(field) => (
-            <>
-              <field.Input
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </>
-          )}
-        />
-        <button type='submit'>Submit</button>
-      </form>
     </div>
   );
 }
