@@ -1,7 +1,8 @@
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 import { entry } from "../db/schema";
-import { eq } from "drizzle-orm";
-import { zNewEntry } from "@/lib/zod";
+import { eq, desc } from "drizzle-orm";
+import { z } from "zod";
+import { zNewEntry } from "global";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -17,7 +18,8 @@ export const appRouter = router({
     return ctx.db
       .select()
       .from(entry)
-      .where(eq(entry.userId, ctx.session.user.id));
+      .where(eq(entry.userId, ctx.session.user.id))
+      .orderBy(desc(entry.date));
   }),
   newEntry: protectedProcedure
     .input(zNewEntry)
@@ -28,6 +30,11 @@ export const appRouter = router({
         date: new Date(),
         userId: ctx.session.user.id,
       });
+    }),
+  deleteEntry: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ ctx, input: { id } }) => {
+      return ctx.db.delete(entry).where(eq(entry.id, id));
     }),
 });
 export type AppRouter = typeof appRouter;

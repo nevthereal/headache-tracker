@@ -1,0 +1,10 @@
+{
+  "name": "global",
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "zod": "^3.24.3"
+  }
+}

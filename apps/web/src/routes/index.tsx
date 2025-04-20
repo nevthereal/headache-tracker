@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import {
   createFormHook,
@@ -7,7 +7,7 @@ import {
   formOptions,
 } from "@tanstack/react-form";
 import type { inferInput } from "@trpc/tanstack-react-query";
-import { zNewEntry } from "../../../server/src/lib/zod";
+import { zNewEntry } from "global";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -54,10 +54,11 @@ function HomeComponent() {
       {entries ? (
         <>
           {/* <Chart data={entries} /> */}
-          <ul>
+          <ul className='flex flex-col gap-2'>
             {entries.map((entry) => (
               <EntryCard
                 key={entry.id}
+                id={entry.id}
                 rating={entry.rating}
                 notes={entry.notes}
                 date={new Date(entry.date)}
@@ -73,6 +74,8 @@ function HomeComponent() {
 }
 
 function NewEntryForm() {
+  const queryClient = useQueryClient();
+
   type Input = inferInput<typeof trpc.newEntry>;
 
   const inputs: Input = {
@@ -102,7 +105,8 @@ function NewEntryForm() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          form.handleSubmit();
+          e.stopPropagation();
+          void form.handleSubmit();
         }}
         className='flex flex-col gap-4'
       >
@@ -113,7 +117,7 @@ function NewEntryForm() {
               <field.Slider
                 onBlur={field.handleBlur}
                 max={5}
-                onValueChange={(e) => field.handleChange(e)}
+                onValueChange={(e) => field.handleChange(e[0])}
                 className='mt-2'
               />
             </div>

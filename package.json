@@ -2,7 +2,8 @@
   "name": "headache",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
