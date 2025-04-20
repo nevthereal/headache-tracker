@@ -3,6 +3,7 @@ import { entry } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { zNewEntry } from "global";
+import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -23,7 +24,24 @@ export const appRouter = router({
   }),
   newEntry: protectedProcedure
     .input(zNewEntry)
-    .mutation(({ ctx, input: { rating, notes } }) => {
+    .mutation(async ({ ctx, input: { rating, notes } }) => {
+      const ratelimit = new ctx.Ratelimit({
+        limit: 5,
+        duration: "30s",
+        rootKey: process.env.UNKEY_API_KEY || "",
+        namespace: "new-entry",
+      });
+
+      const { success } = await ratelimit.limit(ctx.session.user.id);
+
+      if (!success) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many requests",
+          cause: "Rate limit exceeded",
+        });
+      }
+
       return ctx.db
         .insert(entry)
         .values({

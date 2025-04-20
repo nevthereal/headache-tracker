@@ -21,6 +21,7 @@ import EntryCard from "@/components/entry-card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { authClient } from "@/lib/auth-client";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -93,6 +94,8 @@ function NewEntryForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const [limited, setLimited] = useState(false);
+
   const newEntryMutation = useMutation(
     trpc.newEntry.mutationOptions({
       onSuccess: async (newEntry) => {
@@ -104,6 +107,11 @@ function NewEntryForm() {
         });
 
         router.invalidate();
+      },
+      onError: (error) => {
+        if (error.data?.httpStatus === 429) {
+          setLimited(true);
+        }
       },
     })
   );
@@ -163,6 +171,11 @@ function NewEntryForm() {
           </form.Button>
         </form.AppForm>
       </form>
+      {limited && (
+        <p className='text-destructive mt-1'>
+          You have reached the rate limit for new entries.
+        </p>
+      )}
     </div>
   );
 }

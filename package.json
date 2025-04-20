@@ -20,6 +20,7 @@
   },
   "packageManager": "bun@1.2.8",
   "dependencies": {
+    "@unkey/ratelimit": "^0.5.5",
     "zod": "^3.24.3"
   }
 }
