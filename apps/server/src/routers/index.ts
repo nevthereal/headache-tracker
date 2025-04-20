@@ -24,12 +24,15 @@ export const appRouter = router({
   newEntry: protectedProcedure
     .input(zNewEntry)
     .mutation(({ ctx, input: { rating, notes } }) => {
-      return ctx.db.insert(entry).values({
-        rating,
-        notes,
-        date: new Date(),
-        userId: ctx.session.user.id,
-      });
+      return ctx.db
+        .insert(entry)
+        .values({
+          rating,
+          notes,
+          date: new Date(),
+          userId: ctx.session.user.id,
+        })
+        .returning();
     }),
   deleteEntry: protectedProcedure
     .input(z.object({ id: z.string() }))

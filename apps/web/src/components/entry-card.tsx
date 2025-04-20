@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, buttonVariants } from "./ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { buttonVariants } from "./ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { Trash2 } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRouter } from "@tanstack/react-router";
 
 type EntryCardProps = {
   notes: string | null;
@@ -18,6 +19,9 @@ type EntryCardProps = {
 };
 
 export default function EntryCard({ notes, date, rating, id }: EntryCardProps) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
   const deleteEntryMutation = useMutation(trpc.deleteEntry.mutationOptions());
 
   return (
@@ -32,12 +36,30 @@ export default function EntryCard({ notes, date, rating, id }: EntryCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className='flex justify-between items-center'>
-        <p>{notes || "No Notes"}</p>
+        {notes ? (
+          <>{notes}</>
+        ) : (
+          <span className='text-muted-foreground'>No Notes</span>
+        )}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger
               onClick={() => {
-                deleteEntryMutation.mutate({ id });
+                deleteEntryMutation.mutate(
+                  { id },
+                  {
+                    onSuccess: () => {
+                      queryClient.setQueryData(
+                        trpc.entries.queryKey(),
+                        (oldData) => {
+                          if (!oldData) return;
+                          return oldData.filter((entry) => entry.id !== id);
+                        }
+                      );
+                      router.invalidate();
+                    },
+                  }
+                );
               }}
               className={buttonVariants({
                 variant: "destructive",

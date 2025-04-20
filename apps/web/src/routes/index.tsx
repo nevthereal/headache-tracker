@@ -1,4 +1,9 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  redirect,
+  Router,
+  useRouter,
+} from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import {
@@ -74,8 +79,6 @@ function HomeComponent() {
 }
 
 function NewEntryForm() {
-  const queryClient = useQueryClient();
-
   type Input = inferInput<typeof trpc.newEntry>;
 
   const inputs: Input = {
@@ -87,7 +90,23 @@ function NewEntryForm() {
     defaultValues: inputs,
   });
 
-  const newEntryMutation = useMutation(trpc.newEntry.mutationOptions());
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const newEntryMutation = useMutation(
+    trpc.newEntry.mutationOptions({
+      onSuccess: async (newEntry) => {
+        const key = trpc.entries.queryKey();
+
+        queryClient.setQueryData(key, (oldData) => {
+          if (!oldData) return;
+          return [...newEntry, ...oldData];
+        });
+
+        router.invalidate();
+      },
+    })
+  );
 
   const form = useAppForm({
     ...formOpts,
