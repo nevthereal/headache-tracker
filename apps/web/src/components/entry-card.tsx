@@ -47,14 +47,6 @@ export default function EntryCard({ notes, date, rating, id }: EntryCardProps) {
                   { id },
                   {
                     onSuccess: () => {
-                      queryClient.setQueryData(
-                        trpc.entries.queryKey(),
-                        (oldData) => {
-                          if (!oldData) return;
-                          return oldData.filter((entry) => entry.id !== id);
-                        }
-                      );
-
                       queryClient.invalidateQueries({
                         queryKey: trpc.entries.queryKey(),
                       });

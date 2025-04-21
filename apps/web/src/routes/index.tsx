@@ -1,41 +1,17 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
-import {
-  createFormHook,
-  createFormHookContexts,
-  formOptions,
-} from "@tanstack/react-form";
-import type { inferInput } from "@trpc/tanstack-react-query";
-import { zNewEntry } from "global";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@radix-ui/react-label";
 import EntryCard from "@/components/entry-card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { authClient } from "@/lib/auth-client";
+import { NewEntryForm } from "@/components/entry-form";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
   async beforeLoad() {
     if (!(await authClient.getSession()).data) throw redirect({ to: "/login" });
   },
-});
-
-const { fieldContext, formContext } = createFormHookContexts();
-
-const { useAppForm } = createFormHook({
-  fieldComponents: {
-    Input,
-    Slider,
-  },
-  formComponents: {
-    Button,
-  },
-  fieldContext,
-  formContext,
 });
 
 function HomeComponent() {
@@ -65,98 +41,6 @@ function HomeComponent() {
           <p>No entries yet</p>
         )}
       </div>
-    </div>
-  );
-}
-function NewEntryForm() {
-  const inputs: inferInput<typeof trpc.newEntry> = {
-    rating: 0,
-    notes: "",
-  };
-
-  const formOpts = formOptions({
-    defaultValues: inputs,
-  });
-
-  const queryClient = useQueryClient();
-
-  const newEntryMutation = useMutation(
-    trpc.newEntry.mutationOptions({
-      onSuccess: async (newEntry) => {
-        const key = trpc.entries.queryKey();
-
-        queryClient.setQueryData(key, (oldData) => {
-          if (!oldData) return;
-          return [...newEntry, ...oldData];
-        });
-
-        queryClient.invalidateQueries({
-          queryKey: key,
-        });
-      },
-    })
-  );
-
-  const form = useAppForm({
-    ...formOpts,
-    async onSubmit({ value }) {
-      await newEntryMutation.mutateAsync(value);
-    },
-    validators: {
-      onChange: zNewEntry,
-    },
-  });
-
-  return (
-    <div className='my-4 border-accent border bg-card p-8 rounded-xl'>
-      <h2 className='font-bold text-xl mb-4'>New entry</h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          void form.handleSubmit();
-        }}
-        className='flex flex-col gap-4'
-      >
-        <form.AppField name='rating'>
-          {(field) => (
-            <div>
-              <Label htmlFor='rating'>Rating ({field.state.value})</Label>
-              <field.Slider
-                onBlur={field.handleBlur}
-                max={5}
-                onValueChange={(e) => field.handleChange(e[0])}
-                className='mt-2'
-              />
-            </div>
-          )}
-        </form.AppField>
-        <form.AppField name='notes'>
-          {(field) => (
-            <div>
-              <Label htmlFor='notes'>Notes</Label>
-              <field.Input
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </div>
-          )}
-        </form.AppField>
-        <form.AppForm>
-          <form.Button
-            type='submit'
-            disabled={!form.state.canSubmit || form.state.isSubmitting}
-          >
-            Submit
-          </form.Button>
-        </form.AppForm>
-      </form>
-      {newEntryMutation.isError && (
-        <p className='text-destructive mt-1'>
-          {newEntryMutation.error.message}
-        </p>
-      )}
     </div>
   );
 }
