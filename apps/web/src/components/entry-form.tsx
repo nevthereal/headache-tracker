@@ -44,6 +44,7 @@ export function NewEntryForm() {
         queryClient.invalidateQueries({
           queryKey: trpc.entries.queryKey(),
         });
+        form.reset(inputs);
       },
     })
   );
@@ -51,7 +52,6 @@ export function NewEntryForm() {
   const form = useAppForm({
     ...formOpts,
     async onSubmit({ value }) {
-      form.reset(inputs);
       await newEntryMutation.mutateAsync(value);
     },
     validators: {
