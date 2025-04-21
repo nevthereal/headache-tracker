@@ -77,6 +77,7 @@ export function NewEntryForm() {
               <field.Slider
                 onBlur={field.handleBlur}
                 max={5}
+                value={[field.state.value]}
                 onValueChange={(e) => field.handleChange(e[0])}
                 className='mt-2'
               />
