@@ -9,7 +9,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useRouter } from "@tanstack/react-router";
 
 type EntryCardProps = {
   notes: string | null;
@@ -20,7 +19,6 @@ type EntryCardProps = {
 
 export default function EntryCard({ notes, date, rating, id }: EntryCardProps) {
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const deleteEntryMutation = useMutation(trpc.deleteEntry.mutationOptions());
 
@@ -56,7 +54,10 @@ export default function EntryCard({ notes, date, rating, id }: EntryCardProps) {
                           return oldData.filter((entry) => entry.id !== id);
                         }
                       );
-                      router.invalidate();
+
+                      queryClient.invalidateQueries({
+                        queryKey: trpc.entries.queryKey(),
+                      });
                     },
                   }
                 );

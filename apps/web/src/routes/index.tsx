@@ -1,10 +1,5 @@
-import {
-  createFileRoute,
-  redirect,
-  Router,
-  useRouter,
-} from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import {
   createFormHook,
@@ -21,16 +16,9 @@ import EntryCard from "@/components/entry-card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { authClient } from "@/lib/auth-client";
-import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
-  loader: async ({ context: { queryClient } }) => {
-    const entries = await queryClient.ensureQueryData(
-      trpc.entries.queryOptions()
-    );
-    return { entries };
-  },
   async beforeLoad() {
     if (!(await authClient.getSession()).data) throw redirect({ to: "/login" });
   },
@@ -51,38 +39,37 @@ const { useAppForm } = createFormHook({
 });
 
 function HomeComponent() {
-  const { entries } = Route.useLoaderData();
+  const entriesQuery = useQuery(trpc.entries.queryOptions());
 
   return (
     <div className='container mx-auto max-w-3xl px-4 py-4'>
       <h1 className='font-bold text-2xl'>Last entries:</h1>
       <NewEntryForm />
-      {entries ? (
-        <>
-          {/* <Chart data={entries} /> */}
-          <ul className='flex flex-col gap-2'>
-            {entries.map((entry) => (
-              <EntryCard
-                key={entry.id}
-                id={entry.id}
-                rating={entry.rating}
-                notes={entry.notes}
-                date={new Date(entry.date)}
-              />
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p>No entries found</p>
-      )}
+      <div>
+        {entriesQuery.data && entriesQuery.data.length > 0 ? (
+          <>
+            {/* <Chart data={entries} /> */}
+            <ul className='flex flex-col gap-2'>
+              {entriesQuery.data.map((entry) => (
+                <EntryCard
+                  key={entry.id}
+                  id={entry.id}
+                  rating={entry.rating}
+                  notes={entry.notes}
+                  date={new Date(entry.date)}
+                />
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p>No entries yet</p>
+        )}
+      </div>
     </div>
   );
 }
-
 function NewEntryForm() {
-  type Input = inferInput<typeof trpc.newEntry>;
-
-  const inputs: Input = {
+  const inputs: inferInput<typeof trpc.newEntry> = {
     rating: 0,
     notes: "",
   };
@@ -91,10 +78,7 @@ function NewEntryForm() {
     defaultValues: inputs,
   });
 
-  const router = useRouter();
   const queryClient = useQueryClient();
-
-  const [limited, setLimited] = useState(false);
 
   const newEntryMutation = useMutation(
     trpc.newEntry.mutationOptions({
@@ -106,12 +90,9 @@ function NewEntryForm() {
           return [...newEntry, ...oldData];
         });
 
-        router.invalidate();
-      },
-      onError: (error) => {
-        if (error.data?.httpStatus === 429) {
-          setLimited(true);
-        }
+        queryClient.invalidateQueries({
+          queryKey: key,
+        });
       },
     })
   );
@@ -171,9 +152,9 @@ function NewEntryForm() {
           </form.Button>
         </form.AppForm>
       </form>
-      {limited && (
+      {newEntryMutation.isError && (
         <p className='text-destructive mt-1'>
-          You have reached the rate limit for new entries.
+          {newEntryMutation.error.message}
         </p>
       )}
     </div>
